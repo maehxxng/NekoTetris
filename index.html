@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fff7ed">
+  <title>喵喵方塊</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app">
+    <section class="screen start-screen" id="start-screen" aria-labelledby="game-title">
+      <div class="sparkle sparkle-one" aria-hidden="true">✦</div>
+      <div class="sparkle sparkle-two" aria-hidden="true">✧</div>
+      <div class="cat-mascot" aria-hidden="true">🐱</div>
+      <h1 id="game-title">喵喵<span>方塊</span></h1>
+      <div class="how-to-play">
+        <h2>輕鬆上手</h2>
+        <p><kbd>←</kbd> <kbd>→</kbd> 移動 <span>·</span> <kbd>↑</kbd> 旋轉 <span>·</span> <kbd>↓</kbd> 加速</p>
+        <p><kbd>空白鍵</kbd> 快速落下 <span>·</span> <kbd>P</kbd> 暫停</p>
+        <p class="touch-hint">手機或平板也可以用畫面上的按鈕。</p>
+      </div>
+      <div class="start-actions">
+        <button class="button button-primary" type="button" data-screen="game-screen">開始遊戲 <span aria-hidden="true">→</span></button>
+      </div>
+      <p class="made-with-love">Nekomeowoo</p>
+    </section>
+
+    <section class="screen game-screen" id="game-screen" aria-labelledby="play-title" hidden>
+      <header class="game-header">
+        <a class="wordmark" href="#" data-screen="start-screen" aria-label="回到喵喵方塊首頁">🐾 喵喵方塊</a>
+        <button class="button button-soft" type="button" data-screen="pause-screen">Ⅱ <span>暫停</span></button>
+      </header>
+      <div class="top-info-bar">
+        <div class="info-card score-card">
+          <p class="card-label">目前分數</p>
+          <p class="score-value">000000</p>
+        </div>
+        <div class="info-card next-card">
+          <p class="card-label">下個貓咪</p>
+          <div class="next-piece" id="next-piece" aria-label="下一個方塊預覽"></div>
+        </div>
+      </div>
+      <div class="game-layout">
+        <div class="board-wrap">
+          <h2 id="play-title" class="visually-hidden">俄羅斯方塊棋盤</h2>
+          <div class="board" id="game-board" role="grid" aria-label="俄羅斯方塊棋盤"></div>
+        </div>
+        <div class="touch-controls" aria-label="觸控操作按鈕示意">
+          <button type="button" aria-label="向左" data-action="move-left">←</button>
+          <button type="button" aria-label="旋轉" data-action="rotate">↻</button>
+          <button type="button" aria-label="向右" data-action="move-right">→</button>
+          <button type="button" aria-label="加速下落" data-action="soft-drop">↓</button>
+          <button type="button" aria-label="快速落下" data-action="hard-drop">⇊</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen pause-screen modal-screen" id="pause-screen" aria-labelledby="pause-title" hidden>
+      <div class="modal-card">
+        <div class="modal-mascot" aria-hidden="true">😽</div>
+        <h2 id="pause-title">休息一下</h2>
+        <button class="button button-primary" type="button" data-screen="game-screen">繼續遊戲</button>
+      </div>
+    </section>
+
+    <section class="screen end-screen modal-screen" id="end-screen" aria-labelledby="end-title" hidden>
+      <div class="confetti" aria-hidden="true">
+        <span>🎉</span><span>✨</span><span>🎊</span><span>🎉</span>
+        <span>✨</span><span>🎊</span><span>🎉</span><span>✨</span>
+        <span>🎊</span><span>🎉</span><span>✨</span><span>🎊</span>
+        <span>✨</span><span>🎊</span><span>🎉</span><span>✨</span>
+        <span>🎊</span><span>🎉</span><span>✨</span><span>🎊</span>
+        <span>🎉</span><span>✨</span><span>🎊</span><span>🎉</span>
+      </div>
+      <div class="modal-card">
+        <div class="modal-mascot" aria-hidden="true">😸</div>
+        <h2 id="end-title">這局辛苦啦！</h2>
+        <p class="result-score"><span>本局分數</span><strong id="final-score">000000</strong></p>
+        <button class="button button-primary" type="button" data-screen="start-screen">再玩一次 <span aria-hidden="true">↻</span></button>
+      </div>
+    </section>
+  </main>
+  <script src="ui.js"></script>
+  <script src="game-loop.js"></script>
+  <script src="game-state.js"></script>
+  <script src="input.js"></script>
+</body>
+</html>
