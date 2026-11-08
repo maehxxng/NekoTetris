@@ -25,6 +25,7 @@ let hardDropTimer = null;
 let lineClearTimer = null;
 let gravityTimer = null;
 let pendingClearRows = [];
+let gravityCells = [];
 let lineClearRemaining = 0;
 let lineClearStartedAt = 0;
 let gravityRemaining = 0;
@@ -39,21 +40,29 @@ function createEmptyBoard() {
   return Array.from({ length: BOARD_HEIGHT }, () => Array(BOARD_WIDTH).fill(null));
 }
 
+function createEmptyGravityCells() {
+  return Array.from({ length: BOARD_HEIGHT }, () => Array(BOARD_WIDTH).fill(false));
+}
+
 function advanceBoardGravity() {
   const nextBoard = board.map((row) => [...row]);
+  const nextGravityCells = gravityCells.map((row) => [...row]);
   let hasMoved = false;
 
   for (let column = 0; column < BOARD_WIDTH; column += 1) {
     for (let row = BOARD_HEIGHT - 2; row >= 0; row -= 1) {
-      if (board[row][column] !== null && board[row + 1][column] === null) {
-        nextBoard[row + 1][column] = board[row][column];
+      if (nextGravityCells[row][column] && nextBoard[row][column] !== null && nextBoard[row + 1][column] === null) {
+        nextBoard[row + 1][column] = nextBoard[row][column];
         nextBoard[row][column] = null;
+        nextGravityCells[row + 1][column] = true;
+        nextGravityCells[row][column] = false;
         hasMoved = true;
       }
     }
   }
 
   board = nextBoard;
+  gravityCells = nextGravityCells;
   return hasMoved;
 }
 
@@ -236,15 +245,32 @@ function resumeLineClear() {
   lineClearStartedAt = Date.now();
   lineClearTimer = window.setTimeout(() => {
     lineClearTimer = null;
-    board = board.filter((_, index) => !pendingClearRows.includes(index));
-    board.unshift(...Array.from(
-      { length: pendingClearRows.length },
-      () => Array(BOARD_WIDTH).fill(null),
-    ));
+    const clearedRows = new Set(pendingClearRows);
+    const lowestClearedRow = Math.max(...pendingClearRows);
+    const remainingRows = board
+      .map((row, index) => ({ row, index }))
+      .filter(({ index }) => !clearedRows.has(index));
+    const remainingGravityCells = gravityCells.length === BOARD_HEIGHT
+      ? gravityCells
+      : createEmptyGravityCells();
+    const addedRows = pendingClearRows.length;
+
+    board = [
+      ...Array.from({ length: addedRows }, () => Array(BOARD_WIDTH).fill(null)),
+      ...remainingRows.map(({ row }) => row),
+    ];
+    gravityCells = [
+      ...Array.from({ length: addedRows }, () => Array(BOARD_WIDTH).fill(false)),
+      ...remainingRows.map(({ row, index }) =>
+        row.map((cell, column) => cell !== null && (
+          remainingGravityCells[index][column] || index < lowestClearedRow
+        ))
+      ),
+    ];
     pendingClearRows = [];
     lineClearRemaining = 0;
-    gravityRemaining = BOARD_GRAVITY_STEP_MS;
     renderGameState();
+    gravityRemaining = BOARD_GRAVITY_STEP_MS;
     resumeBoardGravity();
   }, lineClearRemaining || 560);
 }
@@ -276,6 +302,7 @@ function resumeBoardGravity() {
     }
 
     isClearingLines = false;
+    gravityCells = createEmptyGravityCells();
     gravityRemaining = 0;
     finishLock();
   }, gravityRemaining || BOARD_GRAVITY_STEP_MS);
@@ -400,6 +427,7 @@ function startNewGame() {
   isHardDropping = false;
   isClearingLines = false;
   pendingClearRows = [];
+  gravityCells = createEmptyGravityCells();
   lineClearRemaining = 0;
   gravityRemaining = 0;
   isPaused = false;
