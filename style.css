@@ -213,7 +213,7 @@ kbd {
 }
 
 .game-screen {
-  padding: 24px;
+  padding: 12px;
   border: 1px solid white;
   border-radius: 30px;
   background: rgb(255 255 255 / 79%);
@@ -230,7 +230,7 @@ kbd {
 .wordmark {
   padding: 8px;
   border-radius: 12px;
-  background: #fff;
+  background: transparent;
   color: #59455f;
   font-size: 17px;
   font-weight: 900;
@@ -259,7 +259,7 @@ kbd {
 .info-card {
   position: relative;
   min-height: 0;
-  padding: 16px;
+  padding: 12px;
   overflow: hidden;
   border: 1px solid #f5eaf2;
   border-radius: 20px;
@@ -268,7 +268,7 @@ kbd {
 }
 
 .top-info-bar .info-card {
-  height: 104px;
+  height: 92px;
 }
 
 .card-label {
@@ -290,7 +290,7 @@ kbd {
 .next-card {
   display: grid;
   grid-template-rows: 16px 38px;
-  row-gap: 16px;
+  row-gap: 12px;
   justify-items: center;
   align-items: center;
 }
@@ -391,20 +391,20 @@ kbd {
 }
 
 .board-cell.line-clearing {
-  animation: line-clear-glow 320ms ease-in-out infinite alternate;
+  animation: line-clear-glow 280ms ease-in-out infinite alternate;
   background: #fff3a6;
-  box-shadow: inset 0 0 10px 4px #fff, 0 0 12px 4px #ffe46d;
+  box-shadow: inset 0 0 7px 2px #fff, 0 0 8px 2px #ffe46d;
 }
 
 @keyframes line-clear-glow {
   from {
     filter: brightness(1);
-    box-shadow: inset 0 0 6px 2px #fff, 0 0 7px 2px #ffe46d;
+    box-shadow: inset 0 0 4px 1px #fff, 0 0 4px 1px #ffe46d;
   }
 
   to {
-    filter: brightness(1.45);
-    box-shadow: inset 0 0 12px 5px #fff, 0 0 15px 6px #ffe46d;
+    filter: brightness(1.12);
+    box-shadow: inset 0 0 8px 3px #fff, 0 0 9px 3px #ffe46d;
   }
 }
 
@@ -623,7 +623,7 @@ kbd {
     grid-template-columns: minmax(0, 1fr);
     align-content: space-evenly;
     justify-items: center;
-    padding: 15px;
+    padding: 12px;
     border-radius: 22px;
   }
 
@@ -642,7 +642,7 @@ kbd {
   }
 
   .info-card {
-    padding: 16px;
+    padding: 12px;
   }
 
   .score-value {

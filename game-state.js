@@ -1,5 +1,6 @@
 const BOARD_WIDTH = 10;
 const BOARD_HEIGHT = 20;
+const BOARD_GRAVITY_STEP_MS = 60;
 const LINE_CLEAR_POINTS = [0, 100, 300, 500, 800];
 const PIECE_SHAPES = {
   I: [[1, 1, 1, 1]],
@@ -22,9 +23,12 @@ let isHardDropping = false;
 let isClearingLines = false;
 let hardDropTimer = null;
 let lineClearTimer = null;
+let gravityTimer = null;
 let pendingClearRows = [];
 let lineClearRemaining = 0;
 let lineClearStartedAt = 0;
+let gravityRemaining = 0;
+let gravityStartedAt = 0;
 
 const gameBoard = document.querySelector("#game-board");
 const nextPiecePreview = document.querySelector("#next-piece");
@@ -33,6 +37,34 @@ const finalScoreDisplay = document.querySelector("#final-score");
 
 function createEmptyBoard() {
   return Array.from({ length: BOARD_HEIGHT }, () => Array(BOARD_WIDTH).fill(null));
+}
+
+function advanceBoardGravity() {
+  const nextBoard = board.map((row) => [...row]);
+  let hasMoved = false;
+
+  for (let column = 0; column < BOARD_WIDTH; column += 1) {
+    for (let row = BOARD_HEIGHT - 2; row >= 0; row -= 1) {
+      if (board[row][column] !== null && board[row + 1][column] === null) {
+        nextBoard[row + 1][column] = board[row][column];
+        nextBoard[row][column] = null;
+        hasMoved = true;
+      }
+    }
+  }
+
+  board = nextBoard;
+  return hasMoved;
+}
+
+function findFullRows() {
+  return board
+    .map((row, index) => row.every((cell) => cell !== null) ? index : -1)
+    .filter((index) => index !== -1);
+}
+
+function scoreClearedRows(rowCount) {
+  score += LINE_CLEAR_POINTS[Math.min(rowCount, LINE_CLEAR_POINTS.length - 1)];
 }
 
 function createPiece(type) {
@@ -169,13 +201,12 @@ function lockPiece() {
       }
     });
   });
+  currentPiece = null;
 
-  pendingClearRows = board
-    .map((row, index) => row.every((cell) => cell !== null) ? index : -1)
-    .filter((index) => index !== -1);
+  pendingClearRows = findFullRows();
 
   if (pendingClearRows.length > 0) {
-    score += LINE_CLEAR_POINTS[pendingClearRows.length];
+    scoreClearedRows(pendingClearRows.length);
     isClearingLines = true;
     renderGameState();
     resumeLineClear();
@@ -201,7 +232,7 @@ function resumeLineClear() {
     return;
   }
 
-  lineClearRemaining ||= 320;
+  lineClearRemaining ||= 560;
   lineClearStartedAt = Date.now();
   lineClearTimer = window.setTimeout(() => {
     lineClearTimer = null;
@@ -211,10 +242,43 @@ function resumeLineClear() {
       () => Array(BOARD_WIDTH).fill(null),
     ));
     pendingClearRows = [];
-    isClearingLines = false;
     lineClearRemaining = 0;
+    gravityRemaining = BOARD_GRAVITY_STEP_MS;
+    renderGameState();
+    resumeBoardGravity();
+  }, lineClearRemaining || 560);
+}
+
+function resumeBoardGravity() {
+  if (!isClearingLines || isPaused || gravityTimer !== null || lineClearTimer !== null) {
+    return;
+  }
+
+  gravityRemaining ||= BOARD_GRAVITY_STEP_MS;
+  gravityStartedAt = Date.now();
+  gravityTimer = window.setTimeout(() => {
+    gravityTimer = null;
+
+    if (advanceBoardGravity()) {
+      renderGameState();
+      gravityRemaining = BOARD_GRAVITY_STEP_MS;
+      resumeBoardGravity();
+      return;
+    }
+
+    pendingClearRows = findFullRows();
+    if (pendingClearRows.length > 0) {
+      scoreClearedRows(pendingClearRows.length);
+      lineClearRemaining = 560;
+      renderGameState();
+      resumeLineClear();
+      return;
+    }
+
+    isClearingLines = false;
+    gravityRemaining = 0;
     finishLock();
-  }, lineClearRemaining || 320);
+  }, gravityRemaining || BOARD_GRAVITY_STEP_MS);
 }
 
 function pauseAnimations() {
@@ -227,6 +291,12 @@ function pauseAnimations() {
     window.clearTimeout(lineClearTimer);
     lineClearTimer = null;
     lineClearRemaining = Math.max(0, lineClearRemaining - (Date.now() - lineClearStartedAt));
+  }
+
+  if (gravityTimer !== null) {
+    window.clearTimeout(gravityTimer);
+    gravityTimer = null;
+    gravityRemaining = Math.max(0, gravityRemaining - (Date.now() - gravityStartedAt));
   }
 }
 
@@ -281,8 +351,13 @@ function rotatePiece() {
   const rotatedShape = currentPiece.shape[0].map((_, columnIndex) =>
     currentPiece.shape.map((row) => row[columnIndex]).reverse());
 
-  if (canPlace(currentPiece, currentPiece.x, currentPiece.y, rotatedShape)) {
-    currentPiece.shape = rotatedShape;
+  for (const offset of [0, -1, 1, -2, 2]) {
+    const x = currentPiece.x + offset;
+    if (canPlace(currentPiece, x, currentPiece.y, rotatedShape)) {
+      currentPiece.x = x;
+      currentPiece.shape = rotatedShape;
+      return;
+    }
   }
 }
 
@@ -326,6 +401,7 @@ function startNewGame() {
   isClearingLines = false;
   pendingClearRows = [];
   lineClearRemaining = 0;
+  gravityRemaining = 0;
   isPaused = false;
   board = createEmptyBoard();
   score = 0;
@@ -351,6 +427,7 @@ document.addEventListener("game-screen-change", (event) => {
   if (event.detail.screenId === "game-screen") {
     resumeHardDrop();
     resumeLineClear();
+    resumeBoardGravity();
   }
 });
 
