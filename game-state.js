@@ -14,8 +14,10 @@ const PIECE_SHAPES = {
 const PIECE_TYPES = Object.keys(PIECE_SHAPES);
 
 let board = [];
+let boardPieceIds = [];
 let currentPiece = null;
 let nextPieceType = null;
+let nextPieceId = 1;
 let score = 0;
 let gameOver = false;
 let isPaused = false;
@@ -40,12 +42,17 @@ function createEmptyBoard() {
   return Array.from({ length: BOARD_HEIGHT }, () => Array(BOARD_WIDTH).fill(null));
 }
 
+function createEmptyPieceIds() {
+  return Array.from({ length: BOARD_HEIGHT }, () => Array(BOARD_WIDTH).fill(null));
+}
+
 function createEmptyGravityCells() {
   return Array.from({ length: BOARD_HEIGHT }, () => Array(BOARD_WIDTH).fill(false));
 }
 
 function advanceBoardGravity() {
   const nextBoard = board.map((row) => [...row]);
+  const nextBoardPieceIds = boardPieceIds.map((row) => [...row]);
   const nextGravityCells = gravityCells.map((row) => [...row]);
   let hasMoved = false;
 
@@ -54,6 +61,8 @@ function advanceBoardGravity() {
       if (nextGravityCells[row][column] && nextBoard[row][column] !== null && nextBoard[row + 1][column] === null) {
         nextBoard[row + 1][column] = nextBoard[row][column];
         nextBoard[row][column] = null;
+        nextBoardPieceIds[row + 1][column] = nextBoardPieceIds[row][column];
+        nextBoardPieceIds[row][column] = null;
         nextGravityCells[row + 1][column] = true;
         nextGravityCells[row][column] = false;
         hasMoved = true;
@@ -62,6 +71,7 @@ function advanceBoardGravity() {
   }
 
   board = nextBoard;
+  boardPieceIds = nextBoardPieceIds;
   gravityCells = nextGravityCells;
   return hasMoved;
 }
@@ -198,6 +208,9 @@ function spawnNextPiece() {
 }
 
 function lockPiece() {
+  const pieceId = nextPieceId;
+  nextPieceId += 1;
+
   currentPiece.shape.forEach((row, rowIndex) => {
     row.forEach((cell, columnIndex) => {
       if (cell) {
@@ -206,6 +219,7 @@ function lockPiece() {
 
         if (y >= 0) {
           board[y][x] = currentPiece.type;
+          boardPieceIds[y][x] = pieceId;
         }
       }
     });
@@ -246,24 +260,32 @@ function resumeLineClear() {
   lineClearTimer = window.setTimeout(() => {
     lineClearTimer = null;
     const clearedRows = new Set(pendingClearRows);
-    const lowestClearedRow = Math.max(...pendingClearRows);
+    const affectedPieceIds = new Set();
+    clearedRows.forEach((rowIndex) => {
+      boardPieceIds[rowIndex].forEach((pieceId) => {
+        if (pieceId !== null) {
+          affectedPieceIds.add(pieceId);
+        }
+      });
+    });
     const remainingRows = board
-      .map((row, index) => ({ row, index }))
+      .map((row, index) => ({ row, pieceIds: boardPieceIds[index], gravity: gravityCells[index], index }))
       .filter(({ index }) => !clearedRows.has(index));
-    const remainingGravityCells = gravityCells.length === BOARD_HEIGHT
-      ? gravityCells
-      : createEmptyGravityCells();
     const addedRows = pendingClearRows.length;
 
     board = [
       ...Array.from({ length: addedRows }, () => Array(BOARD_WIDTH).fill(null)),
       ...remainingRows.map(({ row }) => row),
     ];
+    boardPieceIds = [
+      ...Array.from({ length: addedRows }, () => Array(BOARD_WIDTH).fill(null)),
+      ...remainingRows.map(({ pieceIds }) => pieceIds),
+    ];
     gravityCells = [
       ...Array.from({ length: addedRows }, () => Array(BOARD_WIDTH).fill(false)),
-      ...remainingRows.map(({ row, index }) =>
+      ...remainingRows.map(({ row, pieceIds, gravity }) =>
         row.map((cell, column) => cell !== null && (
-          remainingGravityCells[index][column] || index < lowestClearedRow
+          gravity[column] || affectedPieceIds.has(pieceIds[column])
         ))
       ),
     ];
@@ -428,10 +450,12 @@ function startNewGame() {
   isClearingLines = false;
   pendingClearRows = [];
   gravityCells = createEmptyGravityCells();
+  boardPieceIds = createEmptyPieceIds();
   lineClearRemaining = 0;
   gravityRemaining = 0;
   isPaused = false;
   board = createEmptyBoard();
+  nextPieceId = 1;
   score = 0;
   gameOver = false;
   nextPieceType = choosePieceType();
